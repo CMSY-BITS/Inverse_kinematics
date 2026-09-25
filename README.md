@@ -136,8 +136,10 @@ blenderproc run blender/blenderproc_rerender.py \
     --hdri path/to/operating_room.hdr
 ```
 
-Run both from the repo root (or with the repo root on `PYTHONPATH`) — they
-import this repo's `kinematics`/`data`/`blender` packages directly.
+Both scripts import this repo's own `kinematics`/`data`/`blender`
+packages and locate the repo root themselves from their own file path, so
+they run correctly from any working directory — no `cd` or `PYTHONPATH`
+needed.
 
 ## Attribution
 

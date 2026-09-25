@@ -36,6 +36,14 @@ except ImportError:  # running outside `blenderproc run`, e.g. for linting/tests
     bproc = None
     BLENDERPROC_AVAILABLE = False
 
+# `blenderproc run <path>` puts this script's own directory (blender/) on
+# sys.path, not the repo root, so the repo-root-relative imports below
+# would otherwise fail with "No module named 'blender'" regardless of the
+# invoking shell's cwd — see the identical note in scene_gen.py.
+_REPO_ROOT = str(Path(__file__).resolve().parent.parent)
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
 from blender.export_sdf import PSM_LINKS
 from data.collect_transitions import load_episode
 from kinematics.psm_kinematics import PSMKinematics, _dh_transform  # noqa: F401 (see comment below)

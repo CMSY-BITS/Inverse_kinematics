@@ -31,6 +31,16 @@ except ImportError:  # running outside Blender, e.g. for linting/tests
     bpy = None
     BPY_AVAILABLE = False
 
+# Blender's `--python <path>` puts this script's own directory (blender/)
+# on sys.path, not the repo root — so the repo-root-relative imports below
+# (`blender.X`, reaching into this script's own containing package) would
+# otherwise fail with "No module named 'blender'" regardless of the
+# invoking shell's cwd or PYTHONPATH. Insert the repo root explicitly so
+# this runs the same way from anywhere.
+_REPO_ROOT = str(Path(__file__).resolve().parent.parent)
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
 from blender.blenderproc_rerender import psm_link_transforms
 from blender.export_sdf import PSM_LINKS, STATIC_MODELS
 
