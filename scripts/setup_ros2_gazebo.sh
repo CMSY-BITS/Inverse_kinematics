@@ -97,6 +97,10 @@ log "colcon build"
 colcon build --packages-select surg_sim
 source_ros_setup install/setup.bash
 
+log "Adding the surg_sim workspace overlay to ~/.bashrc (idempotent)"
+WORKSPACE_SOURCE_LINE="source \"$REPO_ROOT/sim/ros2_ws/install/setup.bash\""
+grep -qxF "$WORKSPACE_SOURCE_LINE" ~/.bashrc || echo "$WORKSPACE_SOURCE_LINE" >> ~/.bashrc
+
 log "Pointing Gazebo at the Blender-exported models (once you've run blender/export_sdf.py)"
 GZ_RESOURCE_LINE="export GZ_SIM_RESOURCE_PATH=\"$REPO_ROOT/blender/assets/export:\${GZ_SIM_RESOURCE_PATH:-}\""
 grep -qxF "$GZ_RESOURCE_LINE" ~/.bashrc || echo "$GZ_RESOURCE_LINE" >> ~/.bashrc
