@@ -13,6 +13,17 @@ REPO_ROOT="$(pwd)"
 
 log() { printf '\n\033[1;36m==> %s\033[0m\n' "$1"; }
 
+# ROS 2's own setup.bash files reference internal variables (e.g.
+# AMENT_TRACE_SETUP_FILES) without guarding them first, which trips this
+# script's `set -u` (nounset). That's expected of ROS 2's scripts, not a
+# sign anything is broken — disable nounset just around sourcing them.
+source_ros_setup() {
+    set +u
+    # shellcheck source=/dev/null
+    source "$1"
+    set -u
+}
+
 log "Checking environment"
 if ! grep -qi microsoft /proc/version 2>/dev/null; then
     echo "Warning: /proc/version doesn't mention 'microsoft' — this doesn't" \
@@ -69,8 +80,7 @@ rosdep update
 log "Adding ROS 2 sourcing to ~/.bashrc (idempotent)"
 grep -qxF "source /opt/ros/jazzy/setup.bash" ~/.bashrc || \
     echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
-# shellcheck source=/dev/null
-source /opt/ros/jazzy/setup.bash
+source_ros_setup /opt/ros/jazzy/setup.bash
 
 log "Installing this repo's own Python packages (surg_sim imports kinematics/models/...)"
 python3 -m pip install --break-system-packages -e "$REPO_ROOT" || \
@@ -82,8 +92,7 @@ rosdep install --from-paths src --ignore-src -r -y
 
 log "colcon build"
 colcon build --packages-select surg_sim
-# shellcheck source=/dev/null
-source install/setup.bash
+source_ros_setup install/setup.bash
 
 log "Pointing Gazebo at the Blender-exported models (once you've run blender/export_sdf.py)"
 GZ_RESOURCE_LINE="export GZ_SIM_RESOURCE_PATH=\"$REPO_ROOT/blender/assets/export:\${GZ_SIM_RESOURCE_PATH:-}\""
