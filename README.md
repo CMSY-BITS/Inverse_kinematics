@@ -105,8 +105,16 @@ tests/                      unit tests for everything in the left three columns 
 
 ## Blender → Gazebo asset pipeline
 
+There's no modeled `.blend` scene in this repo yet — `blender/scene_gen.py`
+builds a placeholder one from primitives (boxes/cylinders, correctly named
+and roughly posed) so the rest of the pipeline runs end-to-end before real
+art exists:
+
 ```bash
-blender --background assets/surgical_scene.blend --python blender/export_sdf.py -- \
+blender --background --python blender/scene_gen.py -- \
+    --out blender/assets/surgical_scene.blend
+
+blender --background blender/assets/surgical_scene.blend --python blender/export_sdf.py -- \
     --out blender/assets/export
 ```
 
