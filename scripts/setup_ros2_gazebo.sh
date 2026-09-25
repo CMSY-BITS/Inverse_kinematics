@@ -82,6 +82,9 @@ grep -qxF "source /opt/ros/jazzy/setup.bash" ~/.bashrc || \
     echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
 source_ros_setup /opt/ros/jazzy/setup.bash
 
+log "Installing pip (Ubuntu 24.04's base image doesn't ship it for python3)"
+sudo apt install -y python3-pip
+
 log "Installing this repo's own Python packages (surg_sim imports kinematics/models/...)"
 python3 -m pip install --break-system-packages -e "$REPO_ROOT" || \
     python3 -m pip install -e "$REPO_ROOT"
