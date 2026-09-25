@@ -28,7 +28,7 @@
     </plugin>
     <!-- ros2_control's Gazebo hardware interface, matched to the
          controller_manager config in config/psm_controllers.yaml -->
-    <plugin filename="gz-sim-ros2-control-system" name="gz::sim::systems::ROS2Control"/>
+    <plugin filename="gz_ros2_control-system" name="gz::sim::systems::ROS2Control"/>
 
     <light type="directional" name="scialytic_light">
       <pose>0 0 0.4 0 0 0</pose>
