@@ -1,0 +1,25 @@
+# ros2_control controller manager config for the PSM.
+# update_rate is the 1 kHz joint-servo loop from docs/evaluation_plan.md §4
+# ("gz_sim + ros2_control, 1 kHz"); the task nodes' planner tick (5-30 Hz,
+# see base_task_node.py) publishes new position targets far less often, and
+# this controller interpolates between them at full rate.
+controller_manager:
+  ros__parameters:
+    update_rate: 1000  # Hz
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    position_controller:
+      type: position_controllers/JointGroupPositionController
+
+position_controller:
+  ros__parameters:
+    joints:
+      - psm_outer_yaw_joint
+      - psm_outer_pitch_joint
+      - psm_insertion_joint
+      - psm_tool_roll_joint
+      - psm_wrist_pitch_joint
+      - psm_wrist_yaw_joint
+    interface_name: position

@@ -1,0 +1,26 @@
+[project]
+name = "jepa-ik"
+version = "0.1.0"
+description = "V-JEPA 2 visual inverse kinematics for the dVRK PSM: evaluation plan, kinematics, planner, UDE/MMD/Jev, sim scaffold."
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "scipy>=1.10"]
+
+[project.optional-dependencies]
+gpu = ["torch>=2.2"]
+dev = ["pytest>=7.0"]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# Top-level importable packages. sim/ and blender/'s own ROS2/Blender
+# packaging (ament_python, Blender's bundled interpreter) is separate from
+# this pyproject — see README.md.
+py-modules = []
+
+[tool.setuptools.packages.find]
+include = ["kinematics*", "models*", "supervisor*", "data*", "eval*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,66 @@
+<?xml version="1.0" ?>
+<!--
+  NeedleReach world. The PSM, tissue_pad, and needle models referenced
+  below are produced by blender/export_sdf.py (see docs/evaluation_plan.md
+  §4 step 1) and are not vendored in this repo — export them from the
+  Blender assets first, then point GZ_SIM_RESOURCE_PATH at their output
+  directory (blender/assets/export/ by default) before launching this world.
+
+  Camera resolution/FOV and the light rig are placeholders matched to a
+  typical dVRK endoscope framing; recalibrate against your camera_info once
+  you have a real one.
+-->
+<sdf version="1.9">
+  <world name="needle_reach">
+    <physics name="1kHz" type="ignored">
+      <!-- Matches the 1 kHz ros2_control update_rate in
+           config/psm_controllers.yaml so the physics step and the
+           controller loop stay in lockstep. -->
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <!-- ros2_control's Gazebo hardware interface, matched to the
+         controller_manager config in config/psm_controllers.yaml -->
+    <plugin filename="gz-sim-ros2-control-system" name="gz::sim::systems::ROS2Control"/>
+
+    <light type="directional" name="scialytic_light">
+      <pose>0 0 0.4 0 0 0</pose>
+      <direction>0 0 -1</direction>
+      <diffuse>1 1 1 1</diffuse>
+      <intensity>1.5</intensity>
+    </light>
+
+    <include>
+      <uri>model://tissue_pad</uri>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <!-- Base frame origin coincides with the PSM's RCM (see
+           kinematics/psm_kinematics.py), so world-frame and
+           kinematics-frame poses match without an extra transform. -->
+      <uri>model://psm</uri>
+      <pose>0 0 0.2 0 0 0</pose>
+      <name>psm</name>
+    </include>
+
+    <include>
+      <uri>model://needle</uri>
+      <pose>0.04 0.01 0.005 0 0 0.3</pose>
+      <name>needle</name>
+    </include>
+
+    <include>
+      <uri>model://endoscope_camera</uri>
+      <pose>0 0 0.35 0 1.5708 0</pose>
+      <name>camera</name>
+    </include>
+  </world>
+</sdf>

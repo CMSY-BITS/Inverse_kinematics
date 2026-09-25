@@ -1,0 +1,21 @@
+# Runs everywhere (cloud scaffold container included): kinematics, RCM,
+# CEM planner, metrics, Jev gate, episode I/O, tests.
+numpy>=1.24
+scipy>=1.10
+pytest>=7.0
+
+# GPU training-machine only (V-JEPA encoder, AC head, inverse model, MMD
+# adapter, and the learned residual half of the UDE — see
+# models/_torch_optional.py, which every model that needs these degrades
+# gracefully without). Install on the RTX A1000 workstation:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu121
+# torch>=2.2
+
+# Simulation machine only (ROS 2 Jazzy + Gazebo Harmonic, installed via
+# apt/rosdep per README.md, not pip):
+#   rclpy, sensor_msgs, cv_bridge, ros_gz_sim, ros_gz_bridge, ros2_control
+
+# Blender asset export / re-render, run through Blender's own bundled
+# Python and `blenderproc run`, not this requirements.txt:
+#   blender >= 4.0 (bpy, for blender/export_sdf.py)
+#   blenderproc (for blender/blenderproc_rerender.py)

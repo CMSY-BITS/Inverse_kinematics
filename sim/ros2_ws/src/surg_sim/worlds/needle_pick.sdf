@@ -1,0 +1,56 @@
+<?xml version="1.0" ?>
+<!-- Same structure as needle_reach.sdf; the needle is posed for a grasp
+     (not just a reach) and tissue includes a suture pad target so a full
+     pick-and-place episode has somewhere to place the needle afterward. -->
+<sdf version="1.9">
+  <world name="needle_pick">
+    <physics name="1kHz" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-ros2-control-system" name="gz::sim::systems::ROS2Control"/>
+
+    <light type="directional" name="scialytic_light">
+      <pose>0 0 0.4 0 0 0</pose>
+      <direction>0 0 -1</direction>
+      <diffuse>1 1 1 1</diffuse>
+      <intensity>1.5</intensity>
+    </light>
+
+    <include>
+      <uri>model://tissue_pad</uri>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://psm</uri>
+      <pose>0 0 0.2 0 0 0</pose>
+      <name>psm</name>
+    </include>
+
+    <include>
+      <uri>model://needle</uri>
+      <pose>0.01 0.02 0.005 0 0 1.1</pose>
+      <name>needle</name>
+    </include>
+
+    <include>
+      <uri>model://suture_target</uri>
+      <pose>-0.02 -0.02 0.001 0 0 0</pose>
+      <name>suture_target</name>
+    </include>
+
+    <include>
+      <uri>model://endoscope_camera</uri>
+      <pose>0 0 0.35 0 1.5708 0</pose>
+      <name>camera</name>
+    </include>
+  </world>
+</sdf>
