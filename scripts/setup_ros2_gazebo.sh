@@ -94,7 +94,12 @@ cd "$REPO_ROOT/sim/ros2_ws"
 rosdep install --from-paths src --ignore-src -r -y
 
 log "colcon build"
-colcon build --packages-select surg_sim
+# --symlink-install links install/share/surg_sim/{worlds,launch,config}
+# back to the source tree instead of copying it, so editing a world/
+# launch/config file (or reinstalling this repo's Python packages) takes
+# effect immediately -- no rebuild needed except after adding/removing a
+# file or changing setup.py's entry_points.
+colcon build --packages-select surg_sim --symlink-install
 source_ros_setup install/setup.bash
 
 log "Adding the surg_sim workspace overlay to ~/.bashrc (idempotent)"
