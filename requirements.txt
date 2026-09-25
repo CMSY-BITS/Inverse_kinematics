@@ -6,10 +6,14 @@ pytest>=7.0
 
 # GPU training-machine only (V-JEPA encoder, AC head, inverse model, MMD
 # adapter, and the learned residual half of the UDE — see
-# models/_torch_optional.py, which every model that needs these degrades
-# gracefully without). Install on the RTX A1000 workstation:
-#   pip install torch --index-url https://download.pytorch.org/whl/cu121
+# models/_torch_optional.py and models/_transformers_optional.py, which
+# every model that needs these degrades gracefully without). Installed by
+# scripts/setup_gpu_workstation.sh, which picks the right CUDA index for
+# the machine's driver automatically — or by hand:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu124
+#   pip install transformers accelerate    # ships transformers.VJEPA2Model
 # torch>=2.2
+# transformers>=4.55
 
 # Simulation machine only (ROS 2 Jazzy + Gazebo Harmonic, installed via
 # apt/rosdep per README.md, not pip):

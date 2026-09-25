@@ -27,7 +27,8 @@ Every `models/` class that needs torch (`ACHead`, `InverseModel`,
 `MMDAdapter`, `VJEPA2Encoder`) raises a clear `ImportError` from its own
 `__init__` if torch isn't installed, rather than failing on `import
 models` — so the rest of the package stays usable without a GPU. See
-`models/_torch_optional.py`.
+`models/_torch_optional.py` (and `models/_transformers_optional.py` for
+`VJEPA2Encoder` specifically, which also needs `transformers`).
 
 ## Setup
 
@@ -36,22 +37,41 @@ pip install -r requirements.txt      # numpy, scipy, pytest — runs anywhere
 pip install -e .                     # makes kinematics/models/supervisor/data/eval importable as packages
 ```
 
-On the GPU workstation, also: `pip install torch` (see the comment at the
-top of `requirements.txt` for the CUDA-specific index URL) and download a
-V-JEPA 2 checkpoint for `models/jepa_wrapper.py`.
-
-On the ROS 2 + Gazebo machine (Ubuntu, ROS 2 Jazzy, Gazebo Harmonic — the
-evaluation plan assumes this under WSL2 on Windows):
+**On the GPU workstation** (the RTX A1000 PC, under WSL2 or native Linux):
 
 ```bash
-pip install -e .                                    # this repo's packages, on the PYTHONPATH ros2 run picks up
-cd sim/ros2_ws && colcon build --packages-select surg_sim
-source install/setup.bash
-ros2 launch surg_sim needle_reach.launch.py          # (also: gauze_retrieve / peg_transfer / needle_pick)
+bash scripts/setup_gpu_workstation.sh                  # venv + CUDA-matched torch + transformers + this repo
+bash scripts/setup_gpu_workstation.sh --fetch-checkpoint  # also downloads the V-JEPA 2 checkpoint (several GB)
 ```
 
-Gazebo needs the exported models first — see the Blender section below;
-point `GZ_SIM_RESOURCE_PATH` at `blender/assets/export`.
+Detects the driver's CUDA version from `nvidia-smi` and installs a
+matching `torch` build automatically (override with `TORCH_CUDA_INDEX=...`
+if it guesses wrong), then `transformers` — V-JEPA 2 ships as
+`transformers.VJEPA2Model` — and verifies `torch.cuda.is_available()`.
+`models/jepa_wrapper.py:VJEPA2Encoder` defaults to
+`facebook/vjepa2-vitl-fpc64-256` (hidden_size=1024, matching
+`ac_head.py`/`inverse_model.py`'s defaults); override with
+`VJEPA2_CHECKPOINT=...` for a different size or a local checkpoint dir.
+
+**On the ROS 2 + Gazebo machine** (Ubuntu 24.04 under WSL2, per the
+evaluation plan's sim stack):
+
+```bash
+bash scripts/setup_ros2_gazebo.sh
+```
+
+Installs ROS 2 Jazzy, Gazebo Harmonic, `ros_gz`, `ros2_control`, and
+`cv_bridge` via apt; installs this repo with `pip install -e .` so
+`surg_sim`'s nodes can `import kinematics`/`models`/`supervisor`; then
+`colcon build`s `sim/ros2_ws/src/surg_sim` and adds `GZ_SIM_RESOURCE_PATH`
+(pointing at `blender/assets/export`) to `~/.bashrc`. Idempotent — safe to
+re-run. Afterward:
+
+```bash
+ros2 launch surg_sim needle_reach.launch.py   # (also: gauze_retrieve / peg_transfer / needle_pick)
+```
+
+Gazebo needs the exported models first — see the Blender section below.
 
 ## Tests
 
@@ -64,8 +84,8 @@ planner (against a known quadratic optimum), all of `eval/metrics.py`
 (bootstrap CIs, Wilcoxon, ECE, latency/RCM stats), the UDE physics term,
 the MMD estimator, the episode logger round-trip, the Jev gate's rate
 limiting/timeout/fallback behavior and its data-sanitization whitelist,
-and the closed-loop runner against a toy env. None of it needs a GPU, ROS
-2, Gazebo, or Blender.
+`VJEPA2Encoder`'s frame-clip normalization, and the closed-loop runner
+against a toy env. None of it needs a GPU, ROS 2, Gazebo, or Blender.
 
 ## Repo layout
 
@@ -79,6 +99,7 @@ data/collect_transitions.py (image, q, action, next_image) episode logger
 eval/                       metrics, closed-loop runner
 sim/ros2_ws/src/surg_sim/   Gazebo worlds, launch files, controllers, task nodes
 blender/                    asset export to Gazebo SDF, BlenderProc photoreal re-render
+scripts/                    setup_gpu_workstation.sh, setup_ros2_gazebo.sh
 tests/                      unit tests for everything in the left three columns above
 ```
 
