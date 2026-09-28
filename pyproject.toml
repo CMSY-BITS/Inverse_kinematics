@@ -14,13 +14,19 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-# Top-level importable packages. sim/ and blender/'s own ROS2/Blender
-# packaging (ament_python, Blender's bundled interpreter) is separate from
-# this pyproject — see README.md.
+# Top-level importable packages. sim/'s own ROS2 packaging (ament_python)
+# is separate from this pyproject — see README.md. `blender` IS included
+# here even though blender/*.py's own entry points only run inside
+# Blender/BlenderProc: sim/ros2_ws/src/surg_sim/surg_sim/psm_urdf.py (a
+# normal ROS 2 node module, not a Blender script) imports from it too, and
+# needs it resolvable via this package's normal pip install -- not every
+# consumer of blender/ has the Path(__file__)-based sys.path bootstrap
+# that blender/scene_gen.py and blender/blenderproc_rerender.py use for
+# being invoked directly by Blender/BlenderProc.
 py-modules = []
 
 [tool.setuptools.packages.find]
-include = ["kinematics*", "models*", "supervisor*", "data*", "eval*"]
+include = ["kinematics*", "models*", "supervisor*", "data*", "eval*", "blender*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
