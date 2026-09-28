@@ -8,7 +8,14 @@ so it's worth pinning down precisely.
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from blender.export_sdf import DEFAULT_CONTROLLERS_YAML, PSM_LINKS, _add_ros2_control_block
+from blender.export_sdf import (
+    CAMERA_IMAGE_TOPIC,
+    DEFAULT_CONTROLLERS_YAML,
+    PSM_LINKS,
+    STATIC_MODELS,
+    _add_camera_sensor,
+    _add_ros2_control_block,
+)
 
 
 def test_default_controllers_yaml_resolves_to_a_real_file():
@@ -90,3 +97,38 @@ def test_custom_links_list_is_respected():
 
     joint_names = [j.get("name") for j in model.findall("ros2_control/joint")]
     assert joint_names == ["arm_joint"]
+
+
+def test_camera_sensor_topic_has_leading_slash_deliberately():
+    # gz-sensors uses <topic> exactly as given (confirmed against its own
+    # source: no automatic "/image" suffix), and a leading "/" is valid --
+    # it's what gz-sensors' own default falls back to when no topic is
+    # set. Pin this so the bridge's GZ-side topic in launch/_common.py
+    # can never silently drift from what the sensor actually publishes.
+    assert CAMERA_IMAGE_TOPIC == "/camera/image_raw"
+
+
+def test_camera_sensor_element_structure():
+    link = ET.Element("link", name="endoscope_camera_link")
+    _add_camera_sensor(link, sensor_name="endoscope_camera_sensor")
+
+    sensor = link.find("sensor")
+    assert sensor is not None
+    assert sensor.get("name") == "endoscope_camera_sensor"
+    assert sensor.get("type") == "camera"
+    assert sensor.find("topic").text == CAMERA_IMAGE_TOPIC
+    assert sensor.find("update_rate").text == "30"
+    assert sensor.find("always_on").text == "true"
+
+    camera = sensor.find("camera")
+    assert camera.find("image/width").text == "640"
+    assert camera.find("image/height").text == "480"
+    assert camera.find("image/format").text == "R8G8B8"
+    assert float(camera.find("clip/near").text) < float(camera.find("clip/far").text)
+
+
+def test_only_endoscope_camera_model_is_flagged_as_a_camera():
+    # Same is_camera expression export_static_models uses, checked
+    # directly since the real function needs bpy to run end-to-end.
+    flagged = [name for name in STATIC_MODELS if name == "endoscope_camera"]
+    assert flagged == ["endoscope_camera"]

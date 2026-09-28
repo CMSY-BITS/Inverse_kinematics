@@ -25,6 +25,7 @@ from rclpy.qos import QoSPresetProfiles
 from sensor_msgs.msg import Image, JointState
 from std_msgs.msg import Float64MultiArray
 
+from blender.export_sdf import CAMERA_IMAGE_TOPIC
 from kinematics import PSMKinematics, clamp_to_rcm
 from models.cem_planner import CEMPlanner
 
@@ -52,7 +53,7 @@ class BaseTaskNode(Node):
         self._latest_q = np.zeros(N_JOINTS)
         self._goal_xyz = self._load_goal()
 
-        self.create_subscription(Image, "camera/image_raw", self._on_image, QoSPresetProfiles.SENSOR_DATA.value)
+        self.create_subscription(Image, CAMERA_IMAGE_TOPIC, self._on_image, QoSPresetProfiles.SENSOR_DATA.value)
         self.create_subscription(JointState, "joint_states", self._on_joint_state, 10)
         self._cmd_pub = self.create_publisher(Float64MultiArray, "position_controller/commands", 10)
 

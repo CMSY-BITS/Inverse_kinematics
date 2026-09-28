@@ -8,6 +8,7 @@ from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
+from blender.export_sdf import CAMERA_IMAGE_TOPIC
 from surg_sim.psm_urdf import build_psm_urdf
 
 
@@ -23,12 +24,20 @@ def generate_task_launch_description(task_name: str, node_executable: str) -> La
         launch_arguments={"gz_args": f"-r {world_path}"}.items(),
     )
 
-    # Bridges Gazebo's /clock to ROS 2 so nodes using sim time stay in sync
-    # with the 1 kHz physics step (config/psm_controllers.yaml).
-    clock_bridge = Node(
+    # Bridges Gazebo's /clock (so sim-time nodes stay in sync with the
+    # 1 kHz physics step, config/psm_controllers.yaml) and the endoscope
+    # camera sensor's image topic (blender/export_sdf.py's
+    # _add_camera_sensor) one-way into ROS 2. CAMERA_IMAGE_TOPIC is used
+    # on both sides deliberately -- it's the same constant the sensor's
+    # <topic> was built from, so this bridge can't silently point at the
+    # wrong GZ topic.
+    gz_ros_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
-        arguments=["/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock"],
+        arguments=[
+            "/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock",
+            f"{CAMERA_IMAGE_TOPIC}@sensor_msgs/msg/Image[gz.msgs.Image",
+        ],
         output="screen",
     )
 
@@ -71,7 +80,7 @@ def generate_task_launch_description(task_name: str, node_executable: str) -> La
     return LaunchDescription(
         [
             gz_sim,
-            clock_bridge,
+            gz_ros_bridge,
             robot_state_publisher,
             joint_state_broadcaster_spawner,
             position_controller_spawner,

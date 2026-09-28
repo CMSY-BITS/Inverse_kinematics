@@ -161,7 +161,40 @@ def _write_model_config(model_dir: Path, name: str) -> None:
     ET.ElementTree(config).write(model_dir / "model.config", encoding="utf-8", xml_declaration=True)
 
 
-def _write_static_model_sdf(model_dir: Path, name: str, static: bool = True) -> None:
+# The one topic name this repo's perception code expects — see
+# sim/ros2_ws/src/surg_sim/surg_sim/task_nodes/base_task_node.py's
+# `camera/image_raw` subscription and launch/_common.py's ros_gz_bridge
+# entry, which must both match this exactly.
+CAMERA_IMAGE_TOPIC = "/camera/image_raw"
+
+
+def _add_camera_sensor(link: ET.Element, sensor_name: str) -> None:
+    """Append a <sensor type="camera"> to a <link>, publishing on
+    CAMERA_IMAGE_TOPIC. gz-sensors uses the <topic> value exactly as
+    given -- no automatic suffix -- and a leading "/" is valid (it's what
+    gz-sensors' own default falls back to when no topic is set), so
+    CAMERA_IMAGE_TOPIC's leading slash is deliberate, not a typo.
+    Intrinsics (FOV, clip near/far) are placeholders sized for this
+    scene's ~20 cm scale, not a calibrated real endoscope -- see
+    worlds/needle_reach.sdf's own placeholder-camera note.
+    """
+    sensor = ET.SubElement(link, "sensor", name=sensor_name, type="camera")
+    camera = ET.SubElement(sensor, "camera")
+    ET.SubElement(camera, "horizontal_fov").text = "1.047"  # ~60 deg, generic placeholder
+    image = ET.SubElement(camera, "image")
+    ET.SubElement(image, "width").text = "640"
+    ET.SubElement(image, "height").text = "480"
+    ET.SubElement(image, "format").text = "R8G8B8"  # matches cv_bridge's "rgb8" in base_task_node.py
+    clip = ET.SubElement(camera, "clip")
+    ET.SubElement(clip, "near").text = "0.001"  # 1 mm -- this scene is centimeters, not meters
+    ET.SubElement(clip, "far").text = "0.5"
+    ET.SubElement(sensor, "always_on").text = "true"
+    ET.SubElement(sensor, "update_rate").text = "30"  # matches the eval plan's 30 Hz perception node
+    ET.SubElement(sensor, "visualize").text = "true"
+    ET.SubElement(sensor, "topic").text = CAMERA_IMAGE_TOPIC
+
+
+def _write_static_model_sdf(model_dir: Path, name: str, static: bool = True, camera: bool = False) -> None:
     sdf = ET.Element("sdf", version="1.9")
     model = ET.SubElement(sdf, "model", name=name)
     ET.SubElement(model, "static").text = "true" if static else "false"
@@ -177,6 +210,9 @@ def _write_static_model_sdf(model_dir: Path, name: str, static: bool = True) -> 
         inertial = ET.SubElement(link, "inertial")
         ET.SubElement(inertial, "mass").text = "0.01"  # placeholder; recompute from the mesh's real material
 
+    if camera:
+        _add_camera_sensor(link, sensor_name=f"{name}_sensor")
+
     ET.ElementTree(sdf).write(model_dir / "model.sdf", encoding="utf-8", xml_declaration=True)
 
 
@@ -185,7 +221,8 @@ def export_static_models(out_dir: Path, models: dict[str, str] = STATIC_MODELS) 
         model_dir = out_dir / model_name
         _export_mesh_glb(blender_object_name, model_dir / "meshes" / f"{model_name}.glb")
         _write_model_config(model_dir, model_name)
-        _write_static_model_sdf(model_dir, model_name, static=(model_name != "endoscope_camera"))
+        is_camera = model_name == "endoscope_camera"
+        _write_static_model_sdf(model_dir, model_name, static=not is_camera, camera=is_camera)
         print(f"exported {model_name} -> {model_dir}")
 
 
