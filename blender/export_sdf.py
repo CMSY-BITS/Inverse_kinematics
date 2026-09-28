@@ -63,6 +63,61 @@ PSM_LINKS = [
 ]
 
 
+# Per gz_ros2_control's own convention, its plugin attaches to the ROBOT
+# MODEL it controls (with a <parameters> reference to the controller
+# manager's YAML config), alongside a <ros2_control> hardware-interface
+# block listing each joint's command/state interfaces -- NOT to the
+# <world>, where an earlier version of worlds/*.sdf wrongly placed a
+# differently-misnamed plugin element. Confirmed against gz_ros2_control's
+# own demos: https://control.ros.org/jazzy/doc/gz_ros2_control/doc/index.html
+#
+# The <parameters> value must be a real, already-resolved filesystem path:
+# gz_ros2_control's plugin reads it as a plain string
+# (`_sdf->Get<std::string>("parameters")`) with no `$(find pkg)`-style
+# substitution of its own -- that only happens when a URDF goes through
+# xacro first, which our exported plain SDF never does. So this defaults
+# to an absolute path computed from export_sdf.py's own location (the
+# same repo-root-finding pattern as scene_gen.py/blenderproc_rerender.py),
+# pointing at the SOURCE tree copy so it keeps working even without
+# --symlink-install; override with --controllers-yaml if you've moved the
+# built workspace elsewhere.
+DEFAULT_CONTROLLERS_YAML = str(
+    Path(__file__).resolve().parent.parent / "sim/ros2_ws/src/surg_sim/config/psm_controllers.yaml"
+)
+
+
+def _add_ros2_control_block(
+    model: ET.Element, links: list = PSM_LINKS, controllers_yaml: str = DEFAULT_CONTROLLERS_YAML
+) -> None:
+    """Append gz_ros2_control's <plugin> and <ros2_control> elements to a
+    <model> element in place. Pure XML manipulation -- no bpy dependency,
+    so this is unit-tested directly without Blender (see
+    tests/test_export_sdf.py), unlike the mesh-export half of this file.
+    """
+    plugin = ET.SubElement(
+        model,
+        "plugin",
+        filename="gz_ros2_control-system",
+        name="gz_ros2_control::GazeboSimROS2ControlPlugin",
+    )
+    ET.SubElement(plugin, "parameters").text = controllers_yaml
+
+    ros2_control = ET.SubElement(model, "ros2_control", name="GazeboSimSystem", type="system")
+    hardware = ET.SubElement(ros2_control, "hardware")
+    ET.SubElement(hardware, "plugin").text = "gz_ros2_control/GazeboSimSystem"
+
+    for _link_name, _blender_name, joint_name, _joint_type, _axis in links:
+        if joint_name is None:
+            continue  # the base link (PSM_LINKS[0]) has no joint
+        joint = ET.SubElement(ros2_control, "joint", name=joint_name)
+        # Matches config/psm_controllers.yaml's position_controller
+        # (interface_name: position) and joint_state_broadcaster, which
+        # wants position + velocity state feedback.
+        ET.SubElement(joint, "command_interface", name="position")
+        ET.SubElement(joint, "state_interface", name="position")
+        ET.SubElement(joint, "state_interface", name="velocity")
+
+
 def _require_bpy():
     if not BPY_AVAILABLE:
         raise RuntimeError(
@@ -123,12 +178,17 @@ def export_static_models(out_dir: Path, models: dict[str, str] = STATIC_MODELS) 
         print(f"exported {model_name} -> {model_dir}")
 
 
-def export_psm(out_dir: Path, links: list = PSM_LINKS) -> None:
+def export_psm(
+    out_dir: Path, links: list = PSM_LINKS, controllers_yaml: str = DEFAULT_CONTROLLERS_YAML
+) -> None:
     """Multi-link, multi-joint SDF model for the PSM. Requires each link
     listed in `PSM_LINKS` to exist as a separate Blender object, already
     posed at the DH chain's zero configuration (q = 0) in the .blend file —
     `kinematics/psm_kinematics.py:PSMKinematics.forward([0]*6)` gives the
-    reference pose to check against.
+    reference pose to check against. `controllers_yaml` is baked into the
+    exported model's gz_ros2_control <parameters> as an absolute path —
+    see DEFAULT_CONTROLLERS_YAML's docstring above for why it can't be a
+    portable `$(find pkg)`-style reference.
     """
     model_dir = out_dir / "psm"
     meshes_dir = model_dir / "meshes"
@@ -157,6 +217,8 @@ def export_psm(out_dir: Path, links: list = PSM_LINKS) -> None:
             axis_el = ET.SubElement(joint, "axis")
             ET.SubElement(axis_el, "xyz").text = " ".join(str(a) for a in axis)
 
+    _add_ros2_control_block(model, links, controllers_yaml)
+
     _write_model_config(model_dir, "psm")
     ET.ElementTree(sdf).write(model_dir / "model.sdf", encoding="utf-8", xml_declaration=True)
     print(f"exported psm ({len(links)} links) -> {model_dir}")
@@ -168,12 +230,18 @@ def main(argv: list[str] | None = None) -> None:
     argv = argv if argv is not None else sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, help="output directory for exported Gazebo models")
+    parser.add_argument(
+        "--controllers-yaml",
+        default=DEFAULT_CONTROLLERS_YAML,
+        help="absolute path to psm_controllers.yaml, baked into the exported PSM model's "
+        "gz_ros2_control <parameters> (default: this repo's own config, wherever it's cloned)",
+    )
     args = parser.parse_args(argv)
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     export_static_models(out_dir)
-    export_psm(out_dir)
+    export_psm(out_dir, controllers_yaml=args.controllers_yaml)
 
 
 if __name__ == "__main__":

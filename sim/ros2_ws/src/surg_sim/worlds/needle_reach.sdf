@@ -26,9 +26,11 @@
     <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
       <render_engine>ogre2</render_engine>
     </plugin>
-    <!-- ros2_control's Gazebo hardware interface, matched to the
-         controller_manager config in config/psm_controllers.yaml -->
-    <plugin filename="gz_ros2_control-system" name="gz::sim::systems::ROS2Control"/>
+    <!-- gz_ros2_control's plugin is NOT declared here at world scope: per
+         its own convention it attaches to the <model> it controls
+         instead, alongside a <ros2_control> hardware-interface block. See
+         blender/export_sdf.py's _add_ros2_control_block, which writes both
+         into the exported psm/model.sdf below. -->
 
     <light type="directional" name="scialytic_light">
       <pose>0 0 0.4 0 0 0</pose>
