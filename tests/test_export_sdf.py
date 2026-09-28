@@ -68,6 +68,18 @@ def test_each_joint_has_a_position_command_and_position_velocity_state_interface
         assert state_interfaces == ["position", "velocity"]
 
 
+def test_psm_links_axis_is_uniformly_local_z():
+    # Regression test for a real latent bug: an earlier version of this
+    # table had varying per-joint axis values (e.g. (1,0,0), (0,1,0)),
+    # which is inconsistent with the DH convention psm_kinematics.py uses
+    # -- see PSM_LINKS' own comment and psm_urdf.py's docstring for the
+    # proof. Every joint's axis must be local z.
+    for entry in PSM_LINKS:
+        axis = entry[4]
+        if axis is not None:
+            assert axis == (0, 0, 1), f"{entry[0]} has axis {axis}, expected (0, 0, 1)"
+
+
 def test_custom_links_list_is_respected():
     model = ET.Element("model", name="toy")
     toy_links = [

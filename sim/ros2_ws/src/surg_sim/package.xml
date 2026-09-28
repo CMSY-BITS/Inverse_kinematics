@@ -23,6 +23,7 @@
   <depend>ros2_control</depend>
   <depend>ros2_controllers</depend>
   <depend>controller_manager</depend>
+  <depend>robot_state_publisher</depend>
   <depend>cv_bridge</depend>
 
   <test_depend>ament_copyright</test_depend>

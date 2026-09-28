@@ -8,6 +8,8 @@ from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
+from surg_sim.psm_urdf import build_psm_urdf
+
 
 def generate_task_launch_description(task_name: str, node_executable: str) -> LaunchDescription:
     pkg_share = get_package_share_directory("surg_sim")
@@ -28,6 +30,20 @@ def generate_task_launch_description(task_name: str, node_executable: str) -> La
         executable="parameter_bridge",
         arguments=["/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock"],
         output="screen",
+    )
+
+    # gz_ros2_control's controller_manager (inside the Gazebo plugin, see
+    # blender/export_sdf.py's _add_ros2_control_block) does NOT read the
+    # <ros2_control> block embedded in the Gazebo SDF on its own -- it
+    # blocks forever waiting for a URDF-format robot_description on this
+    # topic. robot_state_publisher is what actually publishes it, built
+    # from surg_sim.psm_urdf (kept in sync with the SDF's version via the
+    # same forward-kinematics transforms, not duplicated by hand).
+    robot_state_publisher = Node(
+        package="robot_state_publisher",
+        executable="robot_state_publisher",
+        output="screen",
+        parameters=[{"robot_description": build_psm_urdf(), "use_sim_time": True}],
     )
 
     joint_state_broadcaster_spawner = Node(
@@ -56,6 +72,7 @@ def generate_task_launch_description(task_name: str, node_executable: str) -> La
         [
             gz_sim,
             clock_bridge,
+            robot_state_publisher,
             joint_state_broadcaster_spawner,
             position_controller_spawner,
             task_node,

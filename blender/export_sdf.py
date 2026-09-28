@@ -53,13 +53,24 @@ STATIC_MODELS = {
 # "revolute" for every joint except the insertion stage.
 PSM_LINKS = [
     # (link_name, blender_object_name, joint_name, joint_type, axis)
+    #
+    # `axis` is (0, 0, 1) -- the joint frame's own local z -- for every
+    # joint here, not a per-joint value. This follows directly from the
+    # modified-DH convention kinematics/psm_kinematics.py uses: a joint's
+    # variable always rotates/translates about *its own* local z-axis by
+    # construction, and SDF's/URDF's <axis> is likewise expressed in the
+    # joint's own frame by default. See
+    # sim/ros2_ws/src/surg_sim/surg_sim/psm_urdf.py's module docstring for
+    # the full algebraic proof (verified against PSMKinematics.forward at
+    # nonzero q, not just asserted). An earlier version of this table had
+    # varying axis values per joint -- that was wrong.
     ("psm_base", "PSM_Base", None, None, None),
     ("psm_outer_yaw_link", "PSM_OuterYaw", "psm_outer_yaw_joint", "revolute", (0, 0, 1)),
-    ("psm_outer_pitch_link", "PSM_OuterPitch", "psm_outer_pitch_joint", "revolute", (1, 0, 0)),
+    ("psm_outer_pitch_link", "PSM_OuterPitch", "psm_outer_pitch_joint", "revolute", (0, 0, 1)),
     ("psm_shaft_link", "PSM_Shaft", "psm_insertion_joint", "prismatic", (0, 0, 1)),
     ("psm_tool_roll_link", "PSM_ToolRoll", "psm_tool_roll_joint", "revolute", (0, 0, 1)),
-    ("psm_wrist_pitch_link", "PSM_WristPitch", "psm_wrist_pitch_joint", "revolute", (1, 0, 0)),
-    ("psm_wrist_yaw_link", "PSM_WristYaw", "psm_wrist_yaw_joint", "revolute", (0, 1, 0)),
+    ("psm_wrist_pitch_link", "PSM_WristPitch", "psm_wrist_pitch_joint", "revolute", (0, 0, 1)),
+    ("psm_wrist_yaw_link", "PSM_WristYaw", "psm_wrist_yaw_joint", "revolute", (0, 0, 1)),
 ]
 
 
